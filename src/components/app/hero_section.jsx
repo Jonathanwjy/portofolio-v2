@@ -1,12 +1,33 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowDown, Mail, Github, Linkedin, Instagram } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import StrokeText from "../stroke-text";
+import FoldText from "../fold-text";
+import DepthSlide from "../depthslide";
+
+function useResponsiveFontSize({
+  base = 40,
+  mobile = 24,
+  breakpoint = 640,
+} = {}) {
+  const [fontSize, setFontSize] = useState(base);
+
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${breakpoint}px)`);
+    const update = () => setFontSize(mq.matches ? mobile : base);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, [base, mobile, breakpoint]);
+
+  return fontSize;
+}
 
 export function HeroSection() {
   const { t } = useTranslation();
+  const foldFontSize = useResponsiveFontSize({ base: 40, mobile: 22 });
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -78,36 +99,27 @@ export function HeroSection() {
             {t("hero.greeting")} <br />
             <span className="text-primary"> Jonathan Wijaya.</span>
           </h2>
-
           <motion.p className="text-base lg:text-lg text-muted-foreground">
             {t("hero.description")}
           </motion.p>
-
-          <div className="p-4 border border-border bg-card rounded-xl">
-            <StrokeText
+          <div className="p-4 sm:p-6 border border-border bg-card rounded-xl flex items-center justify-center text-center w-full">
+            <FoldText
               text="FullStack Web Development"
-              strokeColor="var(--foreground)"
-              fillColor="var(--foreground)"
-              strokeWidth={1}
-              drawDuration={1.1}
-              fillDelay={0.1}
-              stagger={0.05}
-              ease="power2.out"
+              splitBy="char"
+              hinge="top"
               trigger="mount"
-              fillMode="wipe"
-              fontSize={50}
-              fontWeight={400}
-              letterSpacing={-2}
-              reverse={false}
+              duration={1}
+              stagger={0.07}
+              ease="power3.out"
+              perspective={700}
+              creaseShading={0.55}
+              fontSize={foldFontSize}
+              fontWeight={600}
+              color="var(--foreground)"
             />
           </div>
 
-          <a
-            href="#projects"
-            className="flex items-center justify-center gap-2 px-8 py-3 bg-primary text-foreground font-bold rounded-xl"
-          >
-            {t("hero.viewProjects")} <ArrowDown className="w-4 h-4" />
-          </a>
+          <DepthSlide text={t("hero.viewProjects")} href="#projects" />
 
           <div className="flex gap-4 justify-center lg:justify-start">
             <SocialLink

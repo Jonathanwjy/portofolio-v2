@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertCircle,
   ArrowLeft,
@@ -59,12 +59,11 @@ const resources = {
     subtitleKey: "institution",
     columns: [
       { key: "title_en", label: "Degree" },
-      { key: "study", label: "Field of study" },
+
       { key: "institution", label: "Institution" },
       { key: "period", label: "Period" },
     ],
     fields: [
-      { key: "study", label: "Field of study", required: true },
       { key: "institution", label: "Institution", required: true },
       { key: "title_en", label: "Degree (EN)", required: true },
       { key: "title_id", label: "Degree (ID)", required: true },
@@ -223,6 +222,8 @@ export default function AdminDashboard() {
   const [session, setSession] = useState(null);
   const [access, setAccess] = useState("checking");
   const [activeType, setActiveType] = useState("certifications");
+  const activeTypeRef = useRef(activeType);
+  const checkedUserIdRef = useRef(null);
   const [records, setRecords] = useState([]);
   const [isLoadingRecords, setIsLoadingRecords] = useState(false);
   const [error, setError] = useState("");
@@ -257,6 +258,7 @@ export default function AdminDashboard() {
   const checkAccess = useCallback(
     async (currentSession) => {
       if (!currentSession) {
+        checkedUserIdRef.current = null;
         setAccess("signed-out");
         setRecords([]);
         return;
@@ -280,20 +282,32 @@ export default function AdminDashboard() {
         return;
       }
 
+      checkedUserIdRef.current = currentSession.user.id;
       setError("");
       setAccess("allowed");
-      await loadRecords("certifications");
+      await loadRecords(activeTypeRef.current);
     },
     [loadRecords],
   );
 
   useEffect(() => {
-    const updateSession = (nextSession) => {
+    // Supabase's client re-checks the token whenever the tab regains focus and
+    // fires onAuthStateChange again even though nothing actually changed. We
+    // only want to re-run the admin check (and reset the screen) on a real
+    // sign-in/sign-out — i.e. when the user id actually changes — not on every
+    // background token refresh, or the current tab and its data get reset
+    // every time the browser tab is refocused.
+    const updateSession = (nextSession, { force = false } = {}) => {
       setSession(nextSession);
-      checkAccess(nextSession);
+      const nextUserId = nextSession?.user?.id ?? null;
+      if (force || nextUserId !== checkedUserIdRef.current) {
+        checkAccess(nextSession);
+      }
     };
 
-    supabase.auth.getSession().then(({ data }) => updateSession(data.session));
+    supabase.auth
+      .getSession()
+      .then(({ data }) => updateSession(data.session, { force: true }));
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, nextSession) =>
@@ -318,6 +332,7 @@ export default function AdminDashboard() {
 
   function selectType(type) {
     setActiveType(type);
+    activeTypeRef.current = type;
     setEditingRecord(null);
     setNotice("");
     loadRecords(type);
@@ -445,7 +460,7 @@ export default function AdminDashboard() {
             </Field>
             <button
               disabled={isSigningIn}
-              className="primary-button w-full"
+              className="primary-button w-full cursor-pointer"
               type="submit"
             >
               {isSigningIn ? (
@@ -479,7 +494,10 @@ export default function AdminDashboard() {
               : "The profiles table has not been set up. Run the admin setup SQL in the Supabase SQL Editor."}
           </p>
           {error && <Message type="error">{error}</Message>}
-          <button className="primary-button mt-6" onClick={handleSignOut}>
+          <button
+            className="primary-button mt-6 cursor-pointer"
+            onClick={handleSignOut}
+          >
             <LogOut className="size-4" /> Sign out
           </button>
         </section>
@@ -503,7 +521,7 @@ export default function AdminDashboard() {
             </span>
             <button
               onClick={handleSignOut}
-              className="icon-button"
+              className="icon-button cursor-pointer"
               title="Sign out"
             >
               <LogOut className="size-4" />

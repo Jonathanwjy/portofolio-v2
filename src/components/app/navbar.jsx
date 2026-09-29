@@ -20,6 +20,7 @@ export function Navbar() {
 
   const [activeSection, setActiveSection] = useState("home");
   const [isOpen, setIsOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const [ringAnimationId, setRingAnimationId] = useState(0);
 
   const changeLang = (lang) => {
@@ -39,6 +40,8 @@ export function Navbar() {
 
   useEffect(() => {
     const handleScroll = () => {
+      setIsScrolled(window.scrollY > 8);
+
       const sections = navItems.map((item) =>
         document.getElementById(item.link),
       );
@@ -56,6 +59,7 @@ export function Navbar() {
       });
     };
 
+    handleScroll();
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
@@ -66,12 +70,17 @@ export function Navbar() {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1.2, ease: "easeOut" }}
-        className="fixed top-6 md:top-10 inset-x-0 z-40 flex justify-center px-4"
+        className={cn(
+          "fixed inset-x-0 z-40 flex justify-center h-2/22 px-4 backdrop-blur-lg transition-colors duration-300 supports-[backdrop-filter]:bg-background/60 bg-background/90",
+          isScrolled
+            ? "border-b border-border/60 shadow-sm"
+            : "border-b border-transparent shadow-none",
+        )}
       >
         <nav className="flex items-center gap-2 px-2 py-1">
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="md:hidden p-2 text-foreground rounded-full"
+            className="md:hidden p-2 text-foreground rounded-full transition-colors hover:bg-muted"
           >
             {isOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
@@ -115,7 +124,7 @@ export function Navbar() {
             exit={{ opacity: 0, scale: 0.95, y: -20 }}
             className="fixed inset-x-4 top-24 z-[4999] md:hidden"
           >
-            <div className="flex flex-col gap-2 p-4 rounded-3xl border border-border bg-background shadow-2xl">
+            <div className="flex flex-col gap-2 p-4 rounded-3xl border border-border/60 bg-background/90 backdrop-blur-lg shadow-2xl supports-[backdrop-filter]:bg-background/70">
               {navItems.map((item) => (
                 <button
                   key={item.key}
@@ -123,8 +132,8 @@ export function Navbar() {
                   className={cn(
                     "w-full px-6 py-4 rounded-2xl text-left font-medium transition-all",
                     activeSection === item.link
-                      ? "text-primary"
-                      : "text-muted-primary hover:text-primary",
+                      ? "text-primary bg-primary/10"
+                      : "text-muted-primary hover:text-primary hover:bg-muted",
                   )}
                 >
                   {t(`nav.${item.key}`)}

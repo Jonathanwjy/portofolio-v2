@@ -269,10 +269,7 @@ export const ScrollTimeline = ({
                   >
                     <Card className="bg-background border">
                       <CardContent className="p-6">
-                        <h3
-                          className="text-xl font-bold mb-1 hover:underline hover:text-blue-400"
-                          href=""
-                        >
+                        <h3 className="text-xl font-bold mb-1" href="">
                           {event.institution}
                         </h3>
 
